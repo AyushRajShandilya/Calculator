@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CalcX — Advanced Calculator</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500;600&display=swap"
+        rel="stylesheet" />
+    <style>
+        :root {
+            --bg-deep: #050709;
+            --bg-card: #0a0e18;
+            --bg-panel: #0e1520;
+            --bg-btn: #111c2b;
+            --bg-btn-hover: #162236;
+            --lime: #b5ff2b;
+            --lime-dim: #8ecc22;
+            --lime-glow: rgba(181, 255, 43, 0.18);
+            --lime-faint: rgba(181, 255, 43, 0.06);
+            --orange: #ff7b2e;
+            --orange-glow: rgba(255, 123, 46, 0.25);
+            --red: #ff4f6b;
+            --green: #00f5a0;
+            --purple: #9b6eff;
+            --text-1: #e8f0fe;
+            --text-2: #8fa3c0;
+            --text-3: #3d5270;
+            --border: rgba(181, 255, 43, 0.10);
+            --radius-sm: 12px;
+            --radius-md: 20px;
+            --radius-lg: 32px;
+            --t: all .2s cubic-bezier(.4, 0, .2, 1);
+        }
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0
+        }
+
+        html {
+            font-size: 16px
+        }
+
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            background: var(--bg-deep);
+            color: var(--text-1);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 1rem;
+            position: relative;
+            overflow: hidden
+        }
+
+        /* Orbs */
+        .bg-orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(120px);
+            opacity: .18;
+            pointer-events: none;
+            animation: driftOrb 18s ease-in-out infinite
+        }
+
+        .bg-orb.o1 {
+            width: 500px;
+            height: 500px;
+            background: var(--lime);
+            top: -180px;
+            left: -150px
+        }
+
+        .bg-orb.o2 {
+            width: 350px;
+            height: 350px;
+            background: var(--purple);
+            bottom: -120px;
+            right: -100px;
+            animation-delay: -6s
+        }
+
+        .bg-orb.o3 {
+            width: 250px;
+            height: 250px;
+            background: var(--orange);
+            top: 60%;
+            left: 60%;
+            animation-delay: -12s
+        }
+
+        @keyframes driftOrb {
+
+            0%,
+            100% {
+                transform: translate(0, 0) scale(1)
+            }
+
+            33% {
+                transform: translate(30px, -25px) scale(1.05)
+            }
+
+            66% {
+                transform: translate(-20px, 25px) scale(.95)
+            }
+        }
+
+        /* Grid texture */
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: linear-gradient(rgba(181, 255, 43, .025) 1px, transparent 1px), linear-gradient(90deg, rgba(181, 255, 43, .025) 1px, transparent 1px);
+            background-size: 36px 36px;
+            pointer-events: none;
+            z-index: 0
+        }
+
+        .page {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+            width: 100%;
+            max-width: 420px;
+            animation: pageIn .8s cubic-bezier(.4, 0, .2, 1) both
+        }
+
+        @keyframes pageIn {
+            from {
+                opacity: 0;
+                transform: translateY(40px) scale(.96)
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1)
+            }
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            animation: fadeDown .7s .15s both
+        }
+
+        @keyframes fadeDown {
+            from {
+                opacity: 0;
+                transform: translateY(-18px)
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0)
+            }
+        }
+
+        .header-tag {
+            display: inline-block;
+            font-family: 'Syne', sans-serif;
+            font-size: .68rem;
+            font-weight: 700;
+            letter-spacing: .22em;
+            text-transform: uppercase;
+            color: var(--lime);
+            background: var(--lime-faint);
+            border: 1px solid var(--border);
+            border-radius: 100px;
+            padding: .28rem .9rem;
+            margin-bottom: .6rem
+        }
+
+        .header h1 {
+            font-family: 'Syne', sans-serif;
+            font-size: 2.6rem;
+            font-weight: 800;
+            letter-spacing: -.04em;
+            background: linear-gradient(135deg, #fff 20%, var(--lime) 65%, var(--purple) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text
+        }
+
+        /* Calc shell */
+        .calc {
+            width: 100%;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            box-shadow: 0 30px 80px rgba(0, 0, 0, .7), 0 0 0 1px rgba(255, 255, 255, .04), 0 0 50px var(--lime-glow);
+            overflow: hidden;
+            position: relative;
+            animation: calcPop .6s .3s both
+        }
+
+        @keyframes calcPop {
+            from {
+                opacity: 0;
+                transform: scale(.92) translateY(20px)
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0)
+            }
+        }
+
+        .calc::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: var(--radius-lg);
+            background: radial-gradient(ellipse 80% 40% at 50% 0%, rgba(181, 255, 43, .06) 0%, transparent 70%);
+            pointer-events: none
+        }
+
+        /* Display */
+        .display {
+            padding: 1.6rem 1.6rem 1.2rem;
+            border-bottom: 1px solid var(--border);
+            min-height: 140px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            gap: .4rem;
+            position: relative;
+            overflow: hidden
+        }
+
+        .display::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 0, 0, .06) 2px, rgba(0, 0, 0, .06) 4px);
+            pointer-events: none
+        }
+
+        .display-mode {
+            display: flex;
+            gap: .5rem;
+            margin-bottom: .3rem
+        }
+
+        .mode-badge {
+            font-size: .6rem;
+            font-weight: 600;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            padding: .2rem .55rem;
+            border-radius: 100px;
+            background: var(--lime-faint);
+            color: var(--lime);
+            border: 1px solid rgba(181, 255, 43, .15);
+            cursor: pointer;
+            transition: var(--t);
+            font-family: 'Syne', sans-serif
+        }
+
+        .mode-badge:hover,
+        .mode-badge.active {
+            background: var(--lime-glow);
+            border-color: rgba(181, 255, 43, .4)
+        }
+
+        .expression {
+            font-size: .85rem;
+            color: var(--text-3);
+            letter-spacing: .05em;
+            min-height: 1.2em;
+            transition: var(--t);
+            word-break: break-all;
+            text-align: right
+        }
+
+        .main-display {
+            font-size: clamp(2rem, 10vw, 3rem);
+            font-weight: 600;
+            color: var(--text-1);
+            text-align: right;
+            letter-spacing: -.02em;
+            line-height: 1;
+            word-break: break-all;
+            transition: font-size .15s ease, color .3s, text-shadow .3s;
+            position: relative;
+            z-index: 1
+        }
+
+        .main-display.result-flash {
+            color: var(--lime);
+            text-shadow: 0 0 25px var(--lime-glow);
+            animation: flashPulse .5s ease
+        }
+
+        @keyframes flashPulse {
+            0% {
+                transform: scale(1)
+            }
+
+            40% {
+                transform: scale(1.04)
+            }
+
+            100% {
+                transform: scale(1)
+            }
+        }
+
+        .cursor {
+            display: inline-block;
+            width: 2px;
+            height: .85em;
+            background: var(--lime);
+            margin-left: 2px;
+            vertical-align: middle;
+            border-radius: 2px;
+            animation: blink 1s step-end infinite
+        }
+
+        @keyframes blink {
+
+            0%,
+            100% {
+                opacity: 1
+            }
+
+            50% {
+                opacity: 0
+            }
+        }
+
+        /* History */
+        .history-panel {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height .4s cubic-bezier(.4, 0, .2, 1);
+            border-bottom: 0 solid var(--border)
+        }
+
+        .history-panel.open {
+            max-height: 180px;
+            border-bottom-width: 1px
+        }
+
+        .history-inner {
+            padding: .8rem 1.4rem;
+            overflow-y: auto;
+            max-height: 180px
+        }
+
+        .history-inner::-webkit-scrollbar {
+            width: 4px
+        }
+
+        .history-inner::-webkit-scrollbar-thumb {
+            background: var(--text-3);
+            border-radius: 4px
+        }
+
+        .history-title {
+            font-size: .65rem;
+            color: var(--text-3);
+            letter-spacing: .15em;
+            text-transform: uppercase;
+            margin-bottom: .5rem
+        }
+
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: .3rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, .03);
+            cursor: pointer;
+            transition: var(--t)
+        }
+
+        .history-item:hover {
+            color: var(--lime)
+        }
+
+        .history-item:last-child {
+            border-bottom: none
+        }
+
+        .h-expr {
+            font-size: .75rem;
+            color: var(--text-3)
+        }
+
+        .h-result {
+            font-size: .85rem;
+            font-weight: 600
+        }
+
+        .no-history {
+            font-size: .78rem;
+            color: var(--text-3);
+            text-align: center;
+            padding: 1rem 0
+        }
+
+        /* Buttons */
+        .btn-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1px;
+            background: rgba(255, 255, 255, .03);
+            padding: 1px
+        }
+
+        .btn {
+            position: relative;
+            background: var(--bg-btn);
+            border: none;
+            color: var(--text-1);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1rem;
+            font-weight: 500;
+            padding: 0;
+            height: 68px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background .15s, color .15s, transform .12s;
+            user-select: none;
+            overflow: hidden
+        }
+
+        .btn::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at center, rgba(255, 255, 255, .15) 0%, transparent 70%);
+            opacity: 0;
+            transform: scale(.4);
+            transition: opacity .3s, transform .3s
+        }
+
+        .btn:active::after {
+            opacity: 1;
+            transform: scale(2);
+            transition: none
+        }
+
+        .btn:active {
+            transform: scale(.94)
+        }
+
+        .btn:hover {
+            transform: scale(1.03)
+        }
+
+        .btn.num:hover {
+            background: var(--bg-btn-hover)
+        }
+
+        .btn.op {
+            color: var(--lime);
+            background: rgba(181, 255, 43, .06);
+            font-size: 1.1rem
+        }
+
+        .btn.op:hover {
+            background: var(--lime-glow)
+        }
+
+        .btn.fn {
+            color: var(--text-2);
+            background: rgba(255, 255, 255, .03);
+            font-size: .82rem;
+            font-family: 'Syne', sans-serif;
+            letter-spacing: .03em
+        }
+
+        .btn.fn:hover {
+            background: rgba(255, 255, 255, .07);
+            color: var(--text-1)
+        }
+
+        .btn.clear {
+            color: var(--red);
+            background: rgba(255, 79, 107, .08);
+            font-family: 'Syne', sans-serif;
+            font-size: .9rem;
+            font-weight: 700
+        }
+
+        .btn.clear:hover {
+            background: rgba(255, 79, 107, .18)
+        }
+
+        .btn.equals {
+            background: linear-gradient(135deg, var(--orange) 0%, #ff5500 100%);
+            color: #fff;
+            font-size: 1.5rem;
+            font-weight: 600;
+            box-shadow: 0 0 20px var(--orange-glow), inset 0 1px 0 rgba(255, 255, 255, .15)
+        }
+
+        .btn.equals:hover {
+            box-shadow: 0 0 35px var(--orange-glow);
+            filter: brightness(1.1)
+        }
+
+        .btn.equals:active {
+            filter: brightness(.9)
+        }
+
+        .btn.zero {
+            grid-column: span 2
+        }
+
+        .btn.sci {
+            color: var(--purple);
+            background: rgba(155, 110, 255, .07);
+            font-size: .78rem
+        }
+
+        .btn.sci:hover {
+            background: rgba(155, 110, 255, .16)
+        }
+
+        /* Sci panel */
+        .sci-panel {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height .35s cubic-bezier(.4, 0, .2, 1)
+        }
+
+        .sci-panel.open {
+            max-height: 140px
+        }
+
+        .sci-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1px;
+            background: rgba(255, 255, 255, .03)
+        }
+
+        /* Bottom bar */
+        .bottom-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: .7rem 1.4rem;
+            border-top: 1px solid var(--border)
+        }
+
+        .bottom-hint {
+            font-size: .65rem;
+            color: var(--text-3);
+            letter-spacing: .08em
+        }
+
+        .btn-hist {
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-2);
+            font-family: 'Syne', sans-serif;
+            font-size: .72rem;
+            font-weight: 600;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            padding: .35rem .8rem;
+            cursor: pointer;
+            transition: var(--t);
+            display: flex;
+            align-items: center;
+            gap: .4rem
+        }
+
+        .btn-hist:hover {
+            border-color: var(--lime-dim);
+            color: var(--lime)
+        }
+
+        /* Button appear animation */
+        .btn-grid .btn {
+            animation: btnAppear .4s both
+        }
+
+        .btn-grid .btn:nth-child(1) {
+            animation-delay: .35s
+        }
+
+        .btn-grid .btn:nth-child(2) {
+            animation-delay: .38s
+        }
+
+        .btn-grid .btn:nth-child(3) {
+            animation-delay: .41s
+        }
+
+        .btn-grid .btn:nth-child(4) {
+            animation-delay: .44s
+        }
+
+        .btn-grid .btn:nth-child(5) {
+            animation-delay: .47s
+        }
+
+        .btn-grid .btn:nth-child(6) {
+            animation-delay: .50s
+        }
+
+        .btn-grid .btn:nth-child(7) {
+            animation-delay: .53s
+        }
+
+        .btn-grid .btn:nth-child(8) {
+            animation-delay: .56s
+        }
+
+        .btn-grid .btn:nth-child(9) {
+            animation-delay: .59s
+        }
+
+        .btn-grid .btn:nth-child(10) {
+            animation-delay: .62s
+        }
+
+        .btn-grid .btn:nth-child(11) {
+            animation-delay: .65s
+        }
+
+        .btn-grid .btn:nth-child(12) {
+            animation-delay: .68s
+        }
+
+        .btn-grid .btn:nth-child(13) {
+            animation-delay: .71s
+        }
+
+        .btn-grid .btn:nth-child(14) {
+            animation-delay: .74s
+        }
+
+        .btn-grid .btn:nth-child(15) {
+            animation-delay: .77s
+        }
+
+        .btn-grid .btn:nth-child(16) {
+            animation-delay: .80s
+        }
+
+        .btn-grid .btn:nth-child(17) {
+            animation-delay: .83s
+        }
+
+        .btn-grid .btn:nth-child(18) {
+            animation-delay: .86s
+        }
+
+        .btn-grid .btn:nth-child(19) {
+            animation-delay: .89s
+        }
+
+        @keyframes btnAppear {
+            from {
+                opacity: 0;
+                transform: scale(.85) translateY(8px)
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0)
+            }
+        }
+
+        .hint-text {
+            animation: fadeIn 1s 1.2s both;
+            font-size: .7rem;
+            color: var(--text-3);
+            letter-spacing: .08em;
+            text-align: center
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0
+            }
+
+            to {
+                opacity: 1
+            }
+        }
+
+        @media(max-width:420px) {
+            .btn {
+                height: 60px;
+                font-size: .92rem
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="bg-orb o1"></div>
+    <div class="bg-orb o2"></div>
+    <div class="bg-orb o3"></div>
+
+    <div class="page">
+        <div class="header">
+            <span class="header-tag">✦ Advanced Calculator</span>
+            <h1>CalcX</h1>
+        </div>
+
+        <div class="calc">
+            <div class="display">
+                <div class="display-mode">
+                    <span class="mode-badge active" id="modeStd" onclick="setMode('STD')">STD</span>
+                    <span class="mode-badge" id="modeSci" onclick="setMode('SCI')">SCI</span>
+                </div>
+                <div class="expression" id="expression">&nbsp;</div>
+                <div class="main-display" id="display">0<span class="cursor"></span></div>
+            </div>
+
+            <div class="history-panel" id="historyPanel">
+                <div class="history-inner" id="historyInner">
+                    <div class="history-title">Calculation History</div>
+                    <div class="no-history" id="noHistory">No history yet.</div>
+                </div>
+            </div>
+
+            <div class="sci-panel" id="sciPanel">
+                <div class="sci-grid">
+                    <button class="btn sci" onclick="sciFn('sin')">sin</button>
+                    <button class="btn sci" onclick="sciFn('cos')">cos</button>
+                    <button class="btn sci" onclick="sciFn('tan')">tan</button>
+                    <button class="btn sci" onclick="sciFn('log')">log</button>
+                    <button class="btn sci" onclick="sciFn('sqrt')">√</button>
+                    <button class="btn sci" onclick="setOp('^')">xʸ</button>
+                    <button class="btn sci" onclick="insertConst('pi')">π</button>
+                    <button class="btn sci" onclick="insertConst('e')">e</button>
+                </div>
+            </div>
+
+            <div class="btn-grid">
+                <button class="btn clear" onclick="clearAll()">AC</button>
+                <button class="btn fn" onclick="toggleSign()">+/−</button>
+                <button class="btn fn" onclick="percent()">%</button>
+                <button class="btn op" onclick="setOp('÷')">÷</button>
+
+                <button class="btn num" onclick="appendChar('7')">7</button>
+                <button class="btn num" onclick="appendChar('8')">8</button>
+                <button class="btn num" onclick="appendChar('9')">9</button>
+                <button class="btn op" onclick="setOp('×')">×</button>
+
+                <button class="btn num" onclick="appendChar('4')">4</button>
+                <button class="btn num" onclick="appendChar('5')">5</button>
+                <button class="btn num" onclick="appendChar('6')">6</button>
+                <button class="btn op" onclick="setOp('−')">−</button>
+
+                <button class="btn num" onclick="appendChar('1')">1</button>
+                <button class="btn num" onclick="appendChar('2')">2</button>
+                <button class="btn num" onclick="appendChar('3')">3</button>
+                <button class="btn op" onclick="setOp('+')">+</button>
+
+                <button class="btn num zero" onclick="appendChar('0')">0</button>
+                <button class="btn num" onclick="appendChar('.')">.</button>
+                <button class="btn equals" onclick="calculate()">=</button>
+            </div>
+
+            <div class="bottom-bar">
+                <span class="bottom-hint">Keyboard supported ⌨</span>
+                <button class="btn-hist" onclick="toggleHistory()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10" />
+                        <polyline points="12 6 12 12 16 14" />
+                    </svg>
+                    History
+                </button>
+            </div>
+        </div>
+
+        <p class="hint-text">Use keyboard: 0–9, +, −, *, /, Enter, Backspace, Escape</p>
+    </div>
+
+    <script>
+        let currentDisplay = '0';
+        let expression = '';
+        let newInput = true;
+        let history = [];
+        let mode = 'STD';
+
+        const $display = document.getElementById('display');
+        const $expr = document.getElementById('expression');
+        const $histPanel = document.getElementById('historyPanel');
+        const $histInner = document.getElementById('historyInner');
+        const $sciPanel = document.getElementById('sciPanel');
+        const $noHist = document.getElementById('noHistory');
+
+        function updateDisplay() {
+            const len = currentDisplay.length;
+            const size = len > 12 ? '1.8rem' : len > 8 ? '2.4rem' : '';
+            $display.style.fontSize = size;
+            $display.innerHTML = currentDisplay + '<span class="cursor"></span>';
+        }
+
+        function appendChar(ch) {
+            if (newInput || currentDisplay === '0') {
+                currentDisplay = ch === '.' ? '0.' : ch;
+                newInput = false;
+            } else {
+                if (ch === '.' && currentDisplay.includes('.')) return;
+                currentDisplay += ch;
+            }
+            updateDisplay();
+        }
+
+        function setOp(op) {
+            expression = currentDisplay + ' ' + op;
+            $expr.textContent = expression;
+            newInput = true;
+        }
+
+        function calculate() {
+            const parts = expression.split(' ');
+            if (parts.length < 2) return;
+            const a = parseFloat(parts[0]);
+            const op = parts[1];
+            const b = parseFloat(currentDisplay);
+            let result;
+            switch (op) {
+                case '+': result = a + b; break;
+                case '−': result = a - b; break;
+                case '×': result = a * b; break;
+                case '÷': result = b === 0 ? NaN : a / b; break;
+                case '^': result = Math.pow(a, b); break;
+                default: return;
+            }
+            const resultStr = isNaN(result) ? 'Error' : parseFloat(result.toPrecision(12)).toString();
+            const fullExpr = parts[0] + ' ' + op + ' ' + currentDisplay;
+            expression = fullExpr + ' =';
+            $expr.textContent = expression;
+            currentDisplay = resultStr;
+            updateDisplay();
+            newInput = true;
+
+            // Flash animation
+            $display.classList.add('result-flash');
+            setTimeout(() => $display.classList.remove('result-flash'), 500);
+
+            // History
+            history.unshift({ expr: fullExpr, result: resultStr });
+            if (history.length > 20) history.pop();
+            renderHistory();
+        }
+
+        function clearAll() {
+            currentDisplay = '0';
+            expression = '';
+            newInput = true;
+            $expr.innerHTML = '&nbsp;';
+            updateDisplay();
+        }
+
+        function toggleSign() {
+            currentDisplay = currentDisplay.startsWith('-') ? currentDisplay.slice(1) : '-' + currentDisplay;
+            updateDisplay();
+        }
+
+        function percent() {
+            currentDisplay = (parseFloat(currentDisplay) / 100).toString();
+            updateDisplay();
+        }
+
+        function sciFn(fn) {
+            const n = parseFloat(currentDisplay);
+            let result;
+            switch (fn) {
+                case 'sin': result = Math.sin(n * Math.PI / 180); break;
+                case 'cos': result = Math.cos(n * Math.PI / 180); break;
+                case 'tan': result = Math.tan(n * Math.PI / 180); break;
+                case 'log': result = Math.log10(n); break;
+                case 'sqrt': result = Math.sqrt(n); break;
+                default: return;
+            }
+            expression = fn + '(' + currentDisplay + ')';
+            $expr.textContent = expression;
+            currentDisplay = parseFloat(result.toPrecision(12)).toString();
+            updateDisplay();
+            newInput = true;
+            $display.classList.add('result-flash');
+            setTimeout(() => $display.classList.remove('result-flash'), 500);
+        }
+
+        function insertConst(c) {
+            currentDisplay = c === 'pi' ? Math.PI.toString() : Math.E.toString();
+            updateDisplay();
+            newInput = true;
+        }
+
+        function setMode(m) {
+            mode = m;
+            document.getElementById('modeStd').classList.toggle('active', m === 'STD');
+            document.getElementById('modeSci').classList.toggle('active', m === 'SCI');
+            $sciPanel.classList.toggle('open', m === 'SCI');
+        }
+
+        function toggleHistory() {
+            $histPanel.classList.toggle('open');
+        }
+
+        function renderHistory() {
+            $noHist.style.display = history.length ? 'none' : 'block';
+            const existing = $histInner.querySelectorAll('.history-item');
+            existing.forEach(el => el.remove());
+            history.forEach((h, i) => {
+                const div = document.createElement('div');
+                div.className = 'history-item';
+                div.style.animation = `fadeIn .3s ${i * .05}s both`;
+                div.innerHTML = '<span class="h-expr">' + h.expr + '</span><span class="h-result">' + h.result + '</span>';
+                div.onclick = () => { currentDisplay = h.result; updateDisplay(); newInput = true; };
+                $histInner.appendChild(div);
+            });
+        }
+
+        // Keyboard
+        document.addEventListener('keydown', e => {
+            if (e.key >= '0' && e.key <= '9') appendChar(e.key);
+            else if (e.key === '.') appendChar('.');
+            else if (e.key === '+') setOp('+');
+            else if (e.key === '-') setOp('−');
+            else if (e.key === '*') setOp('×');
+            else if (e.key === '/') { e.preventDefault(); setOp('÷'); }
+            else if (e.key === 'Enter' || e.key === '=') calculate();
+            else if (e.key === 'Escape') clearAll();
+            else if (e.key === 'Backspace') {
+                currentDisplay = currentDisplay.length > 1 ? currentDisplay.slice(0, -1) : '0';
+                updateDisplay();
+            }
+        });
+    </script>
+</body>
+
+</html>
